@@ -6,6 +6,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -20,14 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
     UserModel? user = await _authService.signInWithEmail(email, password);
 
-    if (user != null) {
-      // Navigate to the next screen or show success
-      print('Signed in as: ${user.name}');
-    } else {
-      setState(() {
-        _errorMessage = 'Failed to sign in. Please check your credentials.';
-      });
-    }
+    // Navigate to the next screen or show success
+    print('Signed in as: ${user?.name}');
   }
 
   @override
