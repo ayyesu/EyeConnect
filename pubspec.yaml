@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
     firebase_messaging: ^14.0.0
     agora_rtc_engine: ^6.0.0
+    firebase_core: ^2.16.0
+    firebase_analytics: ^10.5.1
+    firebase_remote_config: ^4.2.7
 
 
   # The following adds the Cupertino Icons font to your application.
