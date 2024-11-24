@@ -1,25 +1,56 @@
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class VideoCallService {
-  late RtcEngine engine;
+  late RTCPeerConnection _peerConnection;
+  final Map<String, dynamic> _configuration = {
+    'iceServers': [
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ],
+  };
 
-  Future<void> initializeAgora() async {
-    engine = createAgoraRtcEngine();
-    await engine.initialize(const RtcEngineContext(
-      appId: 'YOUR_AGORA_APP_ID',
-    ));
+  final Map<String, dynamic> _offerSdpConstraints = {
+    'mandatory': {
+      'OfferToReceiveAudio': true,
+      'OfferToReceiveVideo': true,
+    },
+    'optional': [],
+  };
+
+  Future<void> initializeWebRTC() async {
+    _peerConnection = await createPeerConnection(_configuration);
+    // Set up ICE candidates and other listeners here if needed
   }
 
-  void startCall(String channelName) {
-    engine.joinChannel(
-      token: 'YOUR_AGORA_TOKEN',
-      channelId: channelName,
-      uid: 0,
-      options: const ChannelMediaOptions(),
-    );
+  RTCPeerConnection get peerConnection => _peerConnection;
+
+  Future<void> startCall(MediaStream localStream) async {
+    localStream.getTracks().forEach((track) {
+      _peerConnection.addTrack(track, localStream);
+    });
+
+    RTCSessionDescription offer = await _peerConnection.createOffer(_offerSdpConstraints);
+    await _peerConnection.setLocalDescription(offer);
+
+    print('Offer created: ${offer.sdp}');
+  }
+
+  Future<void> handleRemoteAnswer(String sdp) async {
+    RTCSessionDescription answer = RTCSessionDescription(sdp, 'answer');
+    await _peerConnection.setRemoteDescription(answer);
+    print('Remote answer set.');
   }
 
   void endCall() {
-    engine.leaveChannel();
+    _peerConnection.close();
+  }
+
+  Future<MediaStream> getUserMedia() async {
+    final Map<String, dynamic> mediaConstraints = {
+      'audio': true,
+      'video': {
+        'facingMode': 'user',
+      },
+    };
+    return await navigator.mediaDevices.getUserMedia(mediaConstraints);
   }
 }

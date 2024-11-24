@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/help_request_provider.dart';
 import 'video_call_screen.dart';
 
 class VolunteerScreen extends StatelessWidget {
@@ -6,25 +8,48 @@ class VolunteerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final requests = context.watch<HelpRequestProvider>().requests;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Help Requests')),
-      body: ListView.builder(
-        itemCount: 5, // Placeholder for actual requests
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text('Request #$index'),
-            trailing: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VideoCallScreen(role: 'volunteer')),
+      body: requests.isEmpty
+          ? const Center(
+              child: Text(
+                'No active help requests.',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            )
+          : ListView.builder(
+              itemCount: requests.length,
+              itemBuilder: (context, index) {
+                final request = requests[index];
+                return ListTile(
+                  title: Text('Request from ${request.requesterName}'),
+                  subtitle: Text('Request ID: ${request.id}'),
+                  trailing: ElevatedButton(
+                    onPressed: () {
+                      // Accept the request and remove it from the list
+                      context
+                          .read<HelpRequestProvider>()
+                          .acceptRequest(request.id);
+                      context
+                          .read<HelpRequestProvider>()
+                          .removeRequest(request.id);
+
+                      // Navigate to the video call screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const VideoCallScreen(role: 'volunteer'),
+                        ),
+                      );
+                    },
+                    child: const Text('Help'),
+                  ),
                 );
               },
-              child: const Text('Help'),
             ),
-          );
-        },
-      ),
     );
   }
 }

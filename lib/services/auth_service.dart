@@ -23,9 +23,22 @@ class AuthService {
         password: password,
       );
       return _userFromFirebase(result.user);
+    } on FirebaseAuthException catch (e) {
+      // Handle specific FirebaseAuth exceptions
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('User not found.');
+        case 'wrong-password':
+          throw Exception('Wrong password provided.');
+        case 'user-disabled':
+          throw Exception('User account is disabled.');
+        case 'too-many-requests':
+          throw Exception('Too many requests. Please try again later.');
+        default:
+          throw Exception('An unexpected error occurred.');
+      }
     } catch (e) {
-      print('Sign in error: $e');
-      return null;
+      throw Exception('An unexpected error occurred.');
     }
   }
 
@@ -37,9 +50,20 @@ class AuthService {
         password: password,
       );
       return _userFromFirebase(result.user);
+    } on FirebaseAuthException catch (e) {
+      // Handle specific FirebaseAuth exceptions
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception('The email is already in use by another account.');
+        case 'invalid-email':
+          throw Exception('The email address is not valid.');
+        case 'weak-password':
+          throw Exception('The password is too weak.');
+        default:
+          throw Exception('An unexpected error occurred.');
+      }
     } catch (e) {
-      print('Sign up error: $e');
-      return null;
+      throw Exception('An unexpected error occurred.');
     }
   }
 
@@ -48,7 +72,7 @@ class AuthService {
     try {
       await _auth.signOut();
     } catch (e) {
-      print('Sign out error: $e');
+      throw Exception('Failed to sign out.');
     }
   }
 }

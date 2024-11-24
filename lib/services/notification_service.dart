@@ -5,8 +5,6 @@ class NotificationService {
 
   Future<void> initializeNotifications() async {
     await _messaging.requestPermission();
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Message received: ${message.notification?.title}');
-    });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
   }
 }
