@@ -1,78 +1,81 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:myapp/models/user_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Convert Firebase User to UserModel
-  UserModel? _userFromFirebase(User? user) {
-    if (user == null) return null;
-    return UserModel(
-      id: user.uid,
-      name: user.displayName ?? 'Anonymous',
-      email: user.email ?? '',
-      role: 'unknown', // Default role, update after registration if needed
-    );
-  }
-
-  // Sign in with email and password
-  Future<UserModel?> signInWithEmail(String email, String password) async {
-    try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return _userFromFirebase(result.user);
-    } on FirebaseAuthException catch (e) {
-      // Handle specific FirebaseAuth exceptions
-      switch (e.code) {
-        case 'user-not-found':
-          throw Exception('User not found.');
-        case 'wrong-password':
-          throw Exception('Wrong password provided.');
-        case 'user-disabled':
-          throw Exception('User account is disabled.');
-        case 'too-many-requests':
-          throw Exception('Too many requests. Please try again later.');
-        default:
-          throw Exception('An unexpected error occurred.');
-      }
-    } catch (e) {
-      throw Exception('An unexpected error occurred.');
-    }
-  }
-
-  // Sign up with email and password
-  Future<UserModel?> signUpWithEmail(String email, String password) async {
+  // Sign Up Method
+  Future<void> signUpWithEmail(
+    String email,
+    String password,
+    String name,
+    String username,
+    String phone,
+    String role,
+  ) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return _userFromFirebase(result.user);
-    } on FirebaseAuthException catch (e) {
-      // Handle specific FirebaseAuth exceptions
-      switch (e.code) {
-        case 'email-already-in-use':
-          throw Exception('The email is already in use by another account.');
-        case 'invalid-email':
-          throw Exception('The email address is not valid.');
-        case 'weak-password':
-          throw Exception('The password is too weak.');
-        default:
-          throw Exception('An unexpected error occurred.');
-      }
+
+      // Store additional user data in Firestore
+      await _firestore.collection('users').doc(result.user!.uid).set({
+        'name': name,
+        'username': username,
+        'phone': phone,
+        'role': role,
+        'email': email,
+      });
     } catch (e) {
-      throw Exception('An unexpected error occurred.');
+      throw Exception(e.toString());
     }
   }
 
-  // Sign out
+  // Sign In Method
+  Future<void> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } catch (e) {
+      throw Exception('Failed to sign in: ${e.toString()}');
+    }
+  }
+
+  // Function to get role and username
+  Future<Map<String, String?>> getUserDetails() async {
+    final user = _auth.currentUser;
+
+    if (user != null) {
+      try {
+        // Fetch user details from Firestore
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists) {
+          final data = doc.data();
+          final role = data?['role'] as String?;
+          final username = data?['username'] as String?;
+          return {'role': role, 'username': username};
+        } else {
+          throw Exception('User document not found in Firestore.');
+        }
+      } catch (e) {
+        throw Exception('Failed to fetch user details: ${e.toString()}');
+      }
+    } else {
+      throw Exception('No user is currently signed in.');
+    }
+  }
+
+  // Sign Out Method
   Future<void> signOut() async {
     try {
       await _auth.signOut();
     } catch (e) {
-      throw Exception('Failed to sign out.');
+      throw Exception('Failed to sign out: ${e.toString()}');
     }
   }
 }

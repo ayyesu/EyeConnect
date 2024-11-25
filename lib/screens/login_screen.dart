@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/role_selection_screen.dart';
-import 'package:myapp/widgets/snackbar.dart';
+import 'package:myapp/screens/visually_impaired_screen.dart';
+import 'package:myapp/screens/volunteer_screen.dart';
 import '../services/auth_service.dart';
-import '../models/user_model.dart';
 import './signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,26 +17,29 @@ class LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
 
-  void _signIn() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    setState(() {
-      _errorMessage = null; // Reset error message before attempting sign-in
-    });
-
+  Future<void> _signIn(String email, String password) async {
     try {
-      UserModel? user = await _authService.signInWithEmail(email, password);
+      // Login
+      await _authService.signInWithEmailAndPassword(email, password);
+
+      // Fetch role and navigate
+      final userDetails = await _authService.getUserDetails();
+      final role = userDetails['role'];
       if (!mounted) return;
-      // Navigate to the next screen
-      showSnackBar(context, 'Signed in as: ${user?.name}', false);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-      );
-        } catch (e) {
+      if (role == 'Volunteer') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const VolunteerScreen()),
+        );
+      } else if (role == 'Visually Impaired') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const VisuallyImpairedScreen()),
+        );
+      }
+    } catch (e) {
       setState(() {
-        _errorMessage = e.toString(); // Display the error message
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
     }
   }
@@ -71,7 +73,13 @@ class LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _signIn,
+              onPressed: () {
+                // Call _signIn with the required arguments
+                _signIn(
+                  _emailController.text.trim(),
+                  _passwordController.text.trim(),
+                );
+              },
               child: const Text('Sign In'),
             ),
             if (_errorMessage != null)

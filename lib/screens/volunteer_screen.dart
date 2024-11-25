@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/help_request_provider.dart';
+import '../services/auth_service.dart';
+import 'login_screen.dart';
 import 'video_call_screen.dart';
 
 class VolunteerScreen extends StatelessWidget {
   const VolunteerScreen({super.key});
+
+  Future<void> _signOut(BuildContext context) async {
+    final authService = AuthService();
+    try {
+      await authService.signOut();
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signed out successfully')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign-out failed: ${e.toString()}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final requests = context.watch<HelpRequestProvider>().requests;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Help Requests')),
+      appBar: AppBar(
+        title: const Text('Help Requests'),
+        actions: [
+          IconButton(
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all<Color>(Colors.red),
+              foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+            ),
+            icon: const Icon(Icons.logout),
+            onPressed: () => _signOut(context),
+            tooltip: 'Sign Out',
+          ),
+        ],
+      ),
       body: requests.isEmpty
           ? const Center(
               child: Text(

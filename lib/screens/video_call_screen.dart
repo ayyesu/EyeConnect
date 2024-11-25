@@ -105,6 +105,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             )
           : const Center(child: CircularProgressIndicator()),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
         onPressed: () {
           Navigator.pop(context);
         },
