@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/visually_impaired_screen.dart';
-import 'package:myapp/screens/volunteer_screen.dart';
+import 'package:myapp/screens/visually_impaired_screen.dart'
+    as visually_impaired_screen;
+import 'package:myapp/screens/volunteer_screen.dart' as volunteer_screen;
 import 'package:myapp/services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -100,12 +101,15 @@ class SignupScreenState extends State<SignupScreen> {
         if (role == 'Volunteer') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const VolunteerScreen()),
+            MaterialPageRoute(
+                builder: (_) => const volunteer_screen.VolunteerScreen()),
           );
         } else if (role == 'Visually Impaired') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const VisuallyImpairedScreen()),
+            MaterialPageRoute(
+                builder: (_) =>
+                    const visually_impaired_screen.VolunteerScreen()),
           );
         }
       } catch (e) {

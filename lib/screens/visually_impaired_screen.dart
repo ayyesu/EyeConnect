@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../models/help_request_model.dart';
 import '../providers/help_request_provider.dart';
@@ -6,8 +7,8 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'video_call_screen.dart';
 
-class VisuallyImpairedScreen extends StatelessWidget {
-  const VisuallyImpairedScreen({super.key});
+class VolunteerScreen extends StatelessWidget {
+  const VolunteerScreen({super.key});
 
   Future<void> _signOut(BuildContext context) async {
     final authService = AuthService();
@@ -38,6 +39,19 @@ class VisuallyImpairedScreen extends StatelessWidget {
       return username;
     }
     return 'Unknown User';
+  }
+
+  Future<bool> _checkAndRequestPermissions() async {
+    final permissions = [
+      Permission.camera,
+      Permission.microphone,
+    ];
+
+    // Request all required permissions
+    final statuses = await permissions.request();
+
+    // Check if all permissions are granted
+    return statuses.values.every((status) => status.isGranted);
   }
 
   @override
@@ -74,7 +88,21 @@ class VisuallyImpairedScreen extends StatelessWidget {
             final requesterName = snapshot.data ?? 'Unknown User';
 
             return ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                // Check and request permissions before making the call
+                final hasPermissions = await _checkAndRequestPermissions();
+                if (!context.mounted) return;
+                if (!hasPermissions) {
+                  // Show an error if permissions are not granted
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Please grant all required permissions to make a video call.'),
+                    ),
+                  );
+                  return;
+                }
+
                 // Generate a unique request ID
                 final requestId = DateTime.now().toIso8601String();
                 final helpRequest =
@@ -87,7 +115,7 @@ class VisuallyImpairedScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const VideoCallScreen(role: 'requester'),
+                    builder: (_) => const VideoCallScreen(role: 'volunteer'),
                   ),
                 );
               },

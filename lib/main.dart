@@ -3,8 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/providers/help_request_provider.dart';
 import 'package:myapp/screens/login_screen.dart';
-import 'package:myapp/screens/volunteer_screen.dart';
-import 'package:myapp/screens/visually_impaired_screen.dart';
+import 'package:myapp/screens/volunteer_screen.dart' as volunteer_screen;
+import 'package:myapp/screens/visually_impaired_screen.dart'
+    as visually_impaired_screen;
 import 'package:myapp/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
@@ -53,9 +54,9 @@ class BeMyEyesApp extends StatelessWidget {
                   final role = userDetails['role'];
 
                   if (role == 'Volunteer') {
-                    return const VolunteerScreen();
+                    return const volunteer_screen.VolunteerScreen();
                   } else if (role == 'Visually Impaired') {
-                    return const VisuallyImpairedScreen();
+                    return const visually_impaired_screen.VolunteerScreen();
                   } else {
                     return const LoginScreen(); // Default for unknown roles
                   }
