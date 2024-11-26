@@ -49,11 +49,19 @@ class VolunteerScreen extends StatelessWidget {
         ],
       ),
       body: requests.isEmpty
-          ? const Center(
-              child: Text(
-                'No active help requests.',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/no-request.png'),
+                const SizedBox(
+                    height: 16),
+                const Center(
+                  child: Text(
+                    'No active help requests.',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                ),
+              ],
             )
           : ListView.builder(
               itemCount: requests.length,
