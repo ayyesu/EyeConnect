@@ -36,9 +36,27 @@ class AuthService {
   // Sign In Method
   Future<void> signInWithEmailAndPassword(String email, String password) async {
     try {
+      if (email.isEmpty || password.isEmpty) {
+        throw Exception('Email and password must not be empty.');
+      }
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } on FirebaseAuthException catch (e) {
+      // Handle Firebase-specific errors
+      if (e.code == 'user-not-found') {
+        throw Exception('No user found with this email.');
+      } else if (e.code == 'wrong-password') {
+        throw Exception('Incorrect password. Please try again.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('The email address is not valid.');
+      } else if (e.code == 'user-disabled') {
+        throw Exception('This user account has been disabled.');
+      } else {
+        throw Exception('${e.message}');
+      }
     } catch (e) {
-      throw Exception('Failed to sign in: ${e.toString()}');
+      // Handle general errors
+      throw Exception(
+          'Failed to sign in, ${e.toString().replaceFirst('Exception: ', '')}');
     }
   }
 
@@ -60,7 +78,7 @@ class AuthService {
           final username = data?['username'] as String?;
           return {'role': role, 'username': username};
         } else {
-          throw Exception('User document not found in Firestore.');
+          throw Exception('User details not found.');
         }
       } catch (e) {
         throw Exception('Failed to fetch user details: ${e.toString()}');
