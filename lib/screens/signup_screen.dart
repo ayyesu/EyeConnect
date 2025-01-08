@@ -20,11 +20,13 @@ class SignupScreenState extends State<SignupScreen> {
   final TextEditingController _phoneController = TextEditingController();
 
   String? _errorMessage;
-  String? _selectedRole; // Either 'Volunteer' or 'Visually Impaired'
+  String? _selectedRole;
   bool cameraGranted = false;
   bool microphoneGranted = false;
+  int _currentStep = 0;
+  final PageController _pageController = PageController();
 
-  final AuthService _authService = AuthService(); // Initialize AuthService
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -65,35 +67,19 @@ class SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signUp() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
-    String name = _nameController.text.trim();
-    String username = _usernameController.text.trim();
-    String phone = _phoneController.text.trim();
-
-    setState(() {
-      _errorMessage = null;
-    });
-
-    // Request permissions before proceeding with signup
     await _requestPermissions();
 
-    // Proceed only if permissions are granted
     if (cameraGranted && microphoneGranted) {
-      if (_selectedRole == null) {
-        setState(() {
-          _errorMessage =
-              'Please select a role (Volunteer or Visually Impaired).';
-        });
-        return;
-      }
-
       try {
-        // Sign up and store the role
         await _authService.signUpWithEmail(
-            email, password, name, username, phone, _selectedRole!);
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+          _nameController.text.trim(),
+          _usernameController.text.trim(),
+          _phoneController.text.trim(),
+          _selectedRole!,
+        );
 
-        // Fetch user role and navigate
         final userDetails = await _authService.getUserDetails();
         final role = userDetails['role'];
 
@@ -120,51 +106,214 @@ class SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Sign Up',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+  bool _validateStep(int step) {
+    setState(() => _errorMessage = null);
+
+    switch (step) {
+      case 0:
+        if (_nameController.text.isEmpty || _usernameController.text.isEmpty) {
+          setState(() => _errorMessage = 'Please fill in all fields');
+          return false;
+        }
+        return true;
+      case 1:
+        if (_phoneController.text.isEmpty || _emailController.text.isEmpty) {
+          setState(() => _errorMessage = 'Please fill in all fields');
+          return false;
+        }
+        return true;
+      case 2:
+        if (_passwordController.text.isEmpty) {
+          setState(() => _errorMessage = 'Please enter a password');
+          return false;
+        }
+        return true;
+      case 3:
+        if (_selectedRole == null) {
+          setState(() => _errorMessage = 'Please select a role');
+          return false;
+        }
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _nextStep() {
+    if (_validateStep(_currentStep)) {
+      if (_currentStep < 3) {
+        setState(() => _currentStep++);
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        _signUp();
+      }
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Widget _buildStepIndicator() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(4, (index) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _currentStep >= index ? Colors.blue : Colors.grey,
+            ),
+          );
+        }),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+    );
+  }
+
+  Widget _buildBasicInfoStep() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.0,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Text(
+              'Basic Information',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Full Name'),
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.name,
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.text,
             ),
+            const SizedBox(height: 50),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactStep() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Contact Details',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _phoneController,
-              decoration: const InputDecoration(labelText: 'Phone Number'),
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.phone,
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.emailAddress,
             ),
+            const SizedBox(height: 50),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordStep() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Create Password',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+              ),
               obscureText: true,
             ),
-            const SizedBox(height: 16),
-            const Text('Select Your Role:'),
+            const SizedBox(height: 50),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleStep() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Select Role',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
             ListTile(
               title: const Text('Volunteer'),
               leading: Radio<String>(
@@ -185,21 +334,69 @@ class SignupScreenState extends State<SignupScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _signUp,
-              child: const Text('Sign Up'),
-            ),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
+            const SizedBox(height: 50),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Sign Up',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildStepIndicator(),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildBasicInfoStep(),
+                _buildContactStep(),
+                _buildPasswordStep(),
+                _buildRoleStep(),
+              ],
+            ),
+          ),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (_currentStep > 0)
+                  ElevatedButton(
+                    onPressed: _previousStep,
+                    child: const Text('Previous'),
+                  )
+                else
+                  const SizedBox.shrink(),
+                ElevatedButton(
+                  onPressed: _nextStep,
+                  child: Text(_currentStep < 3 ? 'Next' : 'Submit'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

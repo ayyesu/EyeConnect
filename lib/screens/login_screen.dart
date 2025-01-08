@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/visually_impaired_screen.dart' as visually_impaired_screen;
+import 'package:myapp/screens/visually_impaired_screen.dart'
+    as visually_impaired_screen;
 import 'package:myapp/screens/volunteer_screen.dart' as volunteer_screen;
 import '../services/auth_service.dart';
 import './signup_screen.dart';
@@ -29,12 +30,14 @@ class LoginScreenState extends State<LoginScreen> {
       if (role == 'Volunteer') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const volunteer_screen.VolunteerScreen()),
+          MaterialPageRoute(
+              builder: (_) => const volunteer_screen.VolunteerScreen()),
         );
       } else if (role == 'Visually Impaired') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const visually_impaired_screen.VolunteerScreen()),
+          MaterialPageRoute(
+              builder: (_) => const visually_impaired_screen.VolunteerScreen()),
         );
       }
     } catch (e) {
@@ -64,11 +67,18 @@ class LoginScreenState extends State<LoginScreen> {
           children: [
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+              ),
             ),
+            const SizedBox(height: 20),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+              ),
               obscureText: true,
             ),
             const SizedBox(height: 20),
