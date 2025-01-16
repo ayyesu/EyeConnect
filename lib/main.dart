@@ -1,13 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:myapp/providers/help_request_provider.dart';
-import 'package:myapp/providers/leaderboard_provider.dart';
-import 'package:myapp/screens/login_screen.dart';
-import 'package:myapp/screens/onboarding_screen.dart'; // Add this import
-import 'package:myapp/screens/visually_impaired_screen.dart';
-import 'package:myapp/screens/volunteer_screen.dart';
-import 'package:myapp/services/auth_service.dart';
+import 'package:eyeconnect/providers/help_request_provider.dart';
+import 'package:eyeconnect/providers/leaderboard_provider.dart';
+import 'package:eyeconnect/screens/login_screen.dart';
+import 'package:eyeconnect/screens/onboarding_screen.dart'; // Add this import
+import 'package:eyeconnect/screens/visually_impaired_screen.dart';
+import 'package:eyeconnect/screens/volunteer_screen.dart';
+import 'package:eyeconnect/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
 
@@ -21,18 +21,18 @@ Future main() async {
         ChangeNotifierProvider(create: (_) => HelpRequestProvider()),
         ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
       ],
-      child: const BeMyEyesApp(),
+      child: const EyeConnectApp(),
     ),
   );
 }
 
-class BeMyEyesApp extends StatelessWidget {
-  const BeMyEyesApp({super.key});
+class EyeConnectApp extends StatelessWidget {
+  const EyeConnectApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Be My Eyes',
+      title: 'EyeConnect',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

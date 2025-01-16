@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/visually_impaired_screen.dart';
-import 'package:myapp/screens/volunteer_screen.dart';
+import 'package:eyeconnect/screens/visually_impaired_screen.dart';
+import 'package:eyeconnect/screens/volunteer_screen.dart';
 import '../services/auth_service.dart';
 import './signup_screen.dart';
 
@@ -29,14 +29,12 @@ class LoginScreenState extends State<LoginScreen> {
       if (role == 'Volunteer') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-              builder: (_) => const VolunteerScreen()),
+          MaterialPageRoute(builder: (_) => const VolunteerScreen()),
         );
       } else if (role == 'Visually Impaired') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-              builder: (_) => const VisuallyImpairedScreen()),
+          MaterialPageRoute(builder: (_) => const VisuallyImpairedScreen()),
         );
       }
     } catch (e) {

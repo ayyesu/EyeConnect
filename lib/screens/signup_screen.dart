@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/visually_impaired_screen.dart';
-import 'package:myapp/screens/volunteer_screen.dart';
-import 'package:myapp/services/auth_service.dart';
+import 'package:eyeconnect/screens/visually_impaired_screen.dart';
+import 'package:eyeconnect/screens/volunteer_screen.dart';
+import 'package:eyeconnect/services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SignupScreen extends StatefulWidget {
