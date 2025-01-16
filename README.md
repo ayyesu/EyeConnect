@@ -1,4 +1,4 @@
-# myapp
+# EyeConnect
 
 A new Flutter project.
 
