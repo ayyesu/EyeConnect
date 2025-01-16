@@ -11,9 +11,10 @@ class HelpRequestProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void acceptRequest(String id) {
+  void acceptRequest(String id, String volunteerId) {  // Updated method
     final request = _requests.firstWhere((req) => req.id == id);
     request.isAccepted = true;
+    request.volunteerId = volunteerId;  // Add volunteer ID
     notifyListeners();
   }
 

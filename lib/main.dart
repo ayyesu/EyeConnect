@@ -2,11 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/providers/help_request_provider.dart';
+import 'package:myapp/providers/leaderboard_provider.dart';
 import 'package:myapp/screens/login_screen.dart';
 import 'package:myapp/screens/onboarding_screen.dart'; // Add this import
-import 'package:myapp/screens/volunteer_screen.dart' as volunteer_screen;
-import 'package:myapp/screens/visually_impaired_screen.dart'
-    as visually_impaired_screen;
+import 'package:myapp/screens/visually_impaired_screen.dart';
+import 'package:myapp/screens/volunteer_screen.dart';
 import 'package:myapp/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
@@ -15,8 +15,15 @@ Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  runApp(ChangeNotifierProvider(
-      create: (_) => HelpRequestProvider(), child: const BeMyEyesApp()));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => HelpRequestProvider()),
+        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
+      ],
+      child: const BeMyEyesApp(),
+    ),
+  );
 }
 
 class BeMyEyesApp extends StatelessWidget {
@@ -101,9 +108,9 @@ class _MainScreenState extends State<MainScreen> {
                 final role = userDetails['role'];
 
                 if (role == 'Volunteer') {
-                  return const volunteer_screen.VolunteerScreen();
+                  return const VolunteerScreen();
                 } else if (role == 'Visually Impaired') {
-                  return const visually_impaired_screen.VolunteerScreen();
+                  return const VisuallyImpairedScreen();
                 } else {
                   return const LoginScreen(); // Default for unknown roles
                 }

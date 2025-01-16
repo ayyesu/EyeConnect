@@ -1,11 +1,13 @@
 class HelpRequest {
-  final String id; // Unique identifier for the request
-  final String requesterName; // Name of the visually impaired person
-  bool isAccepted; // Status of the request
+  final String id;
+  final String requesterName;
+  bool isAccepted;
+  String? volunteerId;  // Add this field
 
   HelpRequest({
     required this.id,
     required this.requesterName,
     this.isAccepted = false,
+    this.volunteerId,
   });
 }

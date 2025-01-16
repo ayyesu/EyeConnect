@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myapp/screens/leaderboard_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/help_request_provider.dart';
 import '../services/auth_service.dart';
@@ -38,6 +40,13 @@ class VolunteerScreen extends StatelessWidget {
         title: const Text('Help Requests'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.leaderboard),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+            ),
+          ),
+          IconButton(
             style: ButtonStyle(
               backgroundColor: WidgetStateProperty.all<Color>(Colors.red),
               foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
@@ -53,8 +62,7 @@ class VolunteerScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/images/no-request.png'),
-                const SizedBox(
-                    height: 16),
+                const SizedBox(height: 16),
                 const Center(
                   child: Text(
                     'No active help requests.',
@@ -73,9 +81,8 @@ class VolunteerScreen extends StatelessWidget {
                   trailing: ElevatedButton(
                     onPressed: () {
                       // Accept the request and remove it from the list
-                      context
-                          .read<HelpRequestProvider>()
-                          .acceptRequest(request.id);
+                      context.read<HelpRequestProvider>().acceptRequest(
+                          request.id, FirebaseAuth.instance.currentUser!.uid);
                       context
                           .read<HelpRequestProvider>()
                           .removeRequest(request.id);
@@ -84,8 +91,10 @@ class VolunteerScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const VideoCallScreen(role: 'volunteer'),
+                          builder: (_) => VideoCallScreen(
+                            role: 'volunteer',
+                            volunteerId: FirebaseAuth.instance.currentUser?.uid,
+                          ),
                         ),
                       );
                     },

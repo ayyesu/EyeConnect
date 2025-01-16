@@ -7,8 +7,8 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'video_call_screen.dart';
 
-class VolunteerScreen extends StatelessWidget {
-  const VolunteerScreen({super.key});
+class VisuallyImpairedScreen extends StatelessWidget {
+  const VisuallyImpairedScreen({super.key});
 
   Future<void> _signOut(BuildContext context) async {
     final authService = AuthService();
@@ -115,7 +115,7 @@ class VolunteerScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const VideoCallScreen(role: 'volunteer'),
+                    builder: (_) => const VideoCallScreen(role: 'requester'),
                   ),
                 );
               },
