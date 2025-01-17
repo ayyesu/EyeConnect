@@ -28,16 +28,14 @@ class VideoCallService {
       _peerConnection.addTrack(track, localStream);
     });
 
-    RTCSessionDescription offer = await _peerConnection.createOffer(_offerSdpConstraints);
+    RTCSessionDescription offer =
+        await _peerConnection.createOffer(_offerSdpConstraints);
     await _peerConnection.setLocalDescription(offer);
-
-    print('Offer created: ${offer.sdp}');
   }
 
   Future<void> handleRemoteAnswer(String sdp) async {
     RTCSessionDescription answer = RTCSessionDescription(sdp, 'answer');
     await _peerConnection.setRemoteDescription(answer);
-    print('Remote answer set.');
   }
 
   void endCall() {

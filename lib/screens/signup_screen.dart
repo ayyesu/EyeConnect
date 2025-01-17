@@ -193,7 +193,10 @@ class SignupScreenState extends State<SignupScreen> {
           children: [
             const Text(
               'Basic Information',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Color(0xFF2563EB),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -234,7 +237,11 @@ class SignupScreenState extends State<SignupScreen> {
           children: [
             const Text(
               'Contact Details',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Color(0xFF2563EB),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold
+                ),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -275,7 +282,9 @@ class SignupScreenState extends State<SignupScreen> {
           children: [
             const Text(
               'Create Password',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFF2563EB),
+                fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -307,7 +316,11 @@ class SignupScreenState extends State<SignupScreen> {
           children: [
             const Text(
               'Select Role',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFF2563EB),
+                fontSize: 24, 
+                fontWeight: FontWeight.bold
+              ),
             ),
             const SizedBox(height: 20),
             ListTile(

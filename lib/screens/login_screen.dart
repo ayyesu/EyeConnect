@@ -51,10 +51,11 @@ class LoginScreenState extends State<LoginScreen> {
           true, // Prevents overlapping by resizing the body
       appBar: AppBar(
         title: const Text(
-          'Login',
+          'Welcome to EyeConnect, Please login',
           style: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 20,
+            color: Color(0xFF2563EB),
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
