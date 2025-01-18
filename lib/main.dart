@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:eyeconnect/providers/help_request_provider.dart';
 import 'package:eyeconnect/providers/leaderboard_provider.dart';
 import 'package:eyeconnect/screens/login_screen.dart';
-import 'package:eyeconnect/screens/onboarding_screen.dart'; // Add this import
+import 'package:eyeconnect/screens/onboarding_screen.dart';
 import 'package:eyeconnect/screens/visually_impaired_screen.dart';
 import 'package:eyeconnect/screens/volunteer_screen.dart';
 import 'package:eyeconnect/services/auth_service.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +36,7 @@ class EyeConnectApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MainScreen(), // Update to use the new MainScreen widget
+      home: const MainScreen(),
     );
   }
 }
@@ -61,7 +61,7 @@ class _MainScreenState extends State<MainScreen> {
     final prefs = await SharedPreferences.getInstance();
     final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
     setState(() {
-      _showOnboarding = !seenOnboarding; // Show onboarding if not seen
+      _showOnboarding = !seenOnboarding;
     });
   }
 
@@ -94,7 +94,7 @@ class _MainScreenState extends State<MainScreen> {
         // If the user is signed in, fetch their role
         if (snapshot.hasData) {
           return FutureBuilder<Map<String, String?>>(
-            future: AuthService().getUserDetails(), // Fetch user details
+            future: AuthService().getUserDetails(),
             builder: (context, userDetailsSnapshot) {
               if (userDetailsSnapshot.connectionState ==
                   ConnectionState.waiting) {
@@ -112,7 +112,7 @@ class _MainScreenState extends State<MainScreen> {
                 } else if (role == 'Visually Impaired') {
                   return const VisuallyImpairedScreen();
                 } else {
-                  return const LoginScreen(); // Default for unknown roles
+                  return const LoginScreen();
                 }
               } else {
                 return const LoginScreen();

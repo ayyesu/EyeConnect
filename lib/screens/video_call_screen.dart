@@ -134,14 +134,27 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ],
             )
           : const Center(child: CircularProgressIndicator()),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.red,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          Navigator.pop(context);
-        },
-        child: const Icon(Icons.call_end),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          FloatingActionButton(
+            heroTag: 'switchCamera',
+            onPressed: () => videoCallService.switchCamera(),
+            child: const Icon(Icons.switch_camera),
+          ),
+          FloatingActionButton(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            heroTag: 'endCall',
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Icon(Icons.call_end),
+          ),
+        ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
     );
   }
 }
