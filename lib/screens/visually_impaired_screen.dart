@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/help_request_model.dart';
 import '../providers/help_request_provider.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'login_screen.dart';
 import 'video_call_screen.dart';
 
@@ -25,6 +26,7 @@ class VisuallyImpairedScreen extends StatelessWidget {
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sign-out failed: ${e.toString()}')),
       );
@@ -76,7 +78,7 @@ class VisuallyImpairedScreen extends StatelessWidget {
           future: _getRequesterName(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator(); // Show a loading spinner
+              return const CircularProgressIndicator();
             }
             if (snapshot.hasError) {
               return const Text(
@@ -93,7 +95,6 @@ class VisuallyImpairedScreen extends StatelessWidget {
                 final hasPermissions = await _checkAndRequestPermissions();
                 if (!context.mounted) return;
                 if (!hasPermissions) {
-                  // Show an error if permissions are not granted
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
@@ -105,13 +106,24 @@ class VisuallyImpairedScreen extends StatelessWidget {
 
                 // Generate a unique request ID
                 final requestId = DateTime.now().toIso8601String();
-                final helpRequest =
-                    HelpRequest(id: requestId, requesterName: requesterName);
+                final helpRequest = HelpRequest(
+                  id: requestId,
+                  requesterName: requesterName,
+                  requesterId: AuthService().getCurrentUser()?.uid ?? '',
+                  description: 'Video assistance request',
+                  timestamp: DateTime.now(),
+                );
 
                 // Add the request to the provider
+                if (!context.mounted) return;
                 context.read<HelpRequestProvider>().addRequest(helpRequest);
 
+                // Send notification
+                final notificationService = NotificationService();
+                await notificationService.sendHelpRequestNotification();
+
                 // Navigate to the video call screen
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(

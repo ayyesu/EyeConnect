@@ -4,6 +4,7 @@ class UserModel {
   final String username;
   final String email;
   final String role; // 'volunteer' or 'visually_impaired'
+  final String? fcmToken;
 
   UserModel({
     required this.id,
@@ -11,6 +12,7 @@ class UserModel {
     required this.username,
     required this.email,
     required this.role,
+    this.fcmToken,
   });
 
   // Factory constructor to create a UserModel from JSON
@@ -21,6 +23,7 @@ class UserModel {
       username: json['username'],
       email: json['email'],
       role: json['role'],
+      fcmToken: json['fcmToken'],
     );
   }
 
@@ -32,6 +35,7 @@ class UserModel {
       'username': username,
       'email': email,
       'role': role,
+      'fcmToken': fcmToken,
     };
   }
 }

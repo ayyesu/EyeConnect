@@ -6,6 +6,7 @@ import '../providers/help_request_provider.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'video_call_screen.dart';
+import 'volunteer_profile_screen.dart';
 
 class VolunteerScreen extends StatelessWidget {
   const VolunteerScreen({super.key});
@@ -39,6 +40,13 @@ class VolunteerScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Help Requests'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const VolunteerProfileScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.leaderboard),
             onPressed: () => Navigator.push(
