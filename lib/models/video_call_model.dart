@@ -5,6 +5,7 @@ class VideoCallModel {
   final String channelName;
   final DateTime startedAt;
   final DateTime? endedAt;
+  String? connectionStatus;
 
   VideoCallModel({
     required this.sessionId,
@@ -13,6 +14,7 @@ class VideoCallModel {
     required this.channelName,
     required this.startedAt,
     this.endedAt,
+    this.connectionStatus = 'connecting',
   });
 
   // Factory constructor to create VideoCallModel from JSON
@@ -24,6 +26,7 @@ class VideoCallModel {
       channelName: json['channelName'],
       startedAt: DateTime.parse(json['startedAt']),
       endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : null,
+      connectionStatus: json['connectionStatus'],
     );
   }
 
@@ -36,6 +39,7 @@ class VideoCallModel {
       'channelName': channelName,
       'startedAt': startedAt.toIso8601String(),
       'endedAt': endedAt?.toIso8601String(),
+      'connectionStatus': connectionStatus,
     };
   }
 }

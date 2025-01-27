@@ -6,6 +6,7 @@ class HelpRequest {
   final DateTime timestamp;
   bool isAccepted;
   String? volunteerId;
+  bool roomCreated;
 
   HelpRequest({
     required this.id,
@@ -15,6 +16,7 @@ class HelpRequest {
     required this.timestamp,
     this.isAccepted = false,
     this.volunteerId,
+    this.roomCreated = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +27,7 @@ class HelpRequest {
     'timestamp': timestamp.toIso8601String(),
     'isAccepted': isAccepted,
     'volunteerId': volunteerId,
+    'roomCreated': roomCreated,
   };
 
   factory HelpRequest.fromJson(Map<String, dynamic> json) => HelpRequest(
@@ -35,5 +38,6 @@ class HelpRequest {
     timestamp: DateTime.parse(json['timestamp']),
     isAccepted: json['isAccepted'] ?? false,
     volunteerId: json['volunteerId'],
+    roomCreated: json['roomCreated'] ?? false,
   );
 }

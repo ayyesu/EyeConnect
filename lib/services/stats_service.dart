@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logger/logger.dart';
 import '../models/volunteer_stats_model.dart';
 import '../models/badge_model.dart';
 import 'badge_service.dart';
@@ -6,6 +7,7 @@ import 'badge_service.dart';
 class StatsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final BadgeService _badgeService = BadgeService();
+  final _logger = Logger();
 
   Future<void> initializeVolunteerStats(String volunteerId) async {
     final statsRef = _firestore.collection('volunteer_stats').doc(volunteerId);
@@ -57,12 +59,14 @@ class StatsService {
     final newLevel = (newXP / 100).floor() + 1;
 
     // Check and award new badges
-    final newBadges = await _badgeService.checkAndAwardBadges(volunteerId, newTotalHelps);
+    final newBadges =
+        await _badgeService.checkAndAwardBadges(volunteerId, newTotalHelps);
 
     // Check for time-based badges
     if (newTotalMinutes >= 100) {
       final timeMasterBadge = await _getTimeMasterBadge();
-      if (timeMasterBadge != null && !currentStats.earnedBadges.any((b) => b.id == 'time_master')) {
+      if (timeMasterBadge != null &&
+          !currentStats.earnedBadges.any((b) => b.id == 'time_master')) {
         await _badgeService.awardBadge(volunteerId, timeMasterBadge.id);
         newBadges.add(timeMasterBadge);
       }
@@ -82,8 +86,9 @@ class StatsService {
 
     // Return newly earned badges if needed for notifications
     if (newBadges.isNotEmpty) {
-      // You could emit an event or handle notifications here
-      print('New badges earned: ${newBadges.map((b) => b.name).join(', ')}');
+      // Using proper logging for badge notifications
+      _logger
+          .i('New badges earned: ${newBadges.map((b) => b.name).join(', ')}');
     }
   }
 
@@ -100,8 +105,9 @@ class StatsService {
   }
 
   Future<VolunteerStats> getVolunteerStats(String volunteerId) async {
-    final statsDoc = await _firestore.collection('volunteer_stats').doc(volunteerId).get();
-    
+    final statsDoc =
+        await _firestore.collection('volunteer_stats').doc(volunteerId).get();
+
     if (!statsDoc.exists) {
       await initializeVolunteerStats(volunteerId);
       return VolunteerStats(

@@ -73,82 +73,177 @@ class VisuallyImpairedScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: FutureBuilder<String>(
-          future: _getRequesterName(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            if (snapshot.hasError) {
-              return const Text(
-                'Error retrieving user information.',
-                style: TextStyle(color: Colors.red),
-              );
-            }
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: FutureBuilder<String>(
+                future: _getRequesterName(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  }
+                  if (snapshot.hasError) {
+                    return const Text(
+                      'Error retrieving user information.',
+                      style: TextStyle(color: Colors.red),
+                    );
+                  }
 
-            final requesterName = snapshot.data ?? 'Unknown User';
+                  final requesterName = snapshot.data ?? 'Unknown User';
 
-            return ElevatedButton(
-              onPressed: () async {
-                // Check and request permissions before making the call
-                final hasPermissions = await _checkAndRequestPermissions();
-                if (!context.mounted) return;
-                if (!hasPermissions) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Please grant all required permissions to make a video call.'),
+                  return ElevatedButton(
+                    onPressed: () async {
+                      // Check and request permissions before making the call
+                      final hasPermissions =
+                          await _checkAndRequestPermissions();
+                      if (!context.mounted) return;
+                      if (!hasPermissions) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Please grant all required permissions to make a video call.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Generate a unique request ID
+                      final requestId = DateTime.now().toIso8601String();
+                      final helpRequest = HelpRequest(
+                        id: requestId,
+                        requesterName: requesterName,
+                        requesterId: AuthService().getCurrentUser()?.uid ?? '',
+                        description: 'Video assistance request',
+                        timestamp: DateTime.now(),
+                      );
+
+                      // Add the request to the provider
+                      if (!context.mounted) return;
+                      await context
+                          .read<HelpRequestProvider>()
+                          .addRequest(helpRequest);
+
+                      // Navigate to video call screen immediately to create the room
+                      if (!context.mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VideoCallScreen(
+                            role: 'requester',
+                            requestId: requestId,
+                          ),
+                        ),
+                      );
+
+                      // Send notification
+                      final notificationService = NotificationService();
+                      await notificationService.sendHelpRequestNotification();
+
+                      // Show success message
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Waiting for a volunteer to join...'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 20.0, horizontal: 40.0),
+                      textStyle: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                      minimumSize: const Size(300, 200),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'Request Help',
+                      style: TextStyle(color: Colors.white),
                     ),
                   );
-                  return;
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Consumer<HelpRequestProvider>(
+              builder: (context, provider, child) {
+                final userId = AuthService().getCurrentUser()?.uid;
+                if (userId == null) {
+                  return const Center(
+                    child: Text('Please sign in to view your requests'),
+                  );
                 }
 
-                // Generate a unique request ID
-                final requestId = DateTime.now().toIso8601String();
-                final helpRequest = HelpRequest(
-                  id: requestId,
-                  requesterName: requesterName,
-                  requesterId: AuthService().getCurrentUser()?.uid ?? '',
-                  description: 'Video assistance request',
-                  timestamp: DateTime.now(),
-                );
+                final userRequests = provider.getRequestsByUser(userId);
+                if (userRequests.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Make a request to get started.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
 
-                // Add the request to the provider
-                if (!context.mounted) return;
-                context.read<HelpRequestProvider>().addRequest(helpRequest);
-
-                // Send notification
-                final notificationService = NotificationService();
-                await notificationService.sendHelpRequestNotification();
-
-                // Navigate to the video call screen
-                if (!context.mounted) return;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const VideoCallScreen(role: 'requester'),
-                  ),
+                return ListView.builder(
+                  itemCount: userRequests.length,
+                  padding: const EdgeInsets.all(16.0),
+                  itemBuilder: (context, index) {
+                    final request = userRequests[index];
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      child: ListTile(
+                        title: Text(
+                          'Help Request',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color:
+                                request.isAccepted ? Colors.green : Colors.blue,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                'Status: ${request.isAccepted ? 'Accepted' : 'Pending'}'),
+                            Text(
+                                'Time: ${request.timestamp.toString().split('.')[0]}'),
+                          ],
+                        ),
+                        trailing: request.isAccepted
+                            ? ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => VideoCallScreen(
+                                        role: 'requester',
+                                        requestId: request.id,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Join Call'),
+                              )
+                            : const Icon(Icons.pending, color: Colors.orange),
+                      ),
+                    );
+                  },
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(
-                    vertical: 20.0, horizontal: 40.0),
-                textStyle:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                minimumSize: const Size(300, 400),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              child: const Text(
-                'Request Help',
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
 import '../models/badge_model.dart';
 
 class BadgeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final Logger _logger = Logger();
 
   // Create a singleton
   static final BadgeService _instance = BadgeService._internal();
@@ -67,7 +69,8 @@ class BadgeService {
       }
       return null;
     } catch (e) {
-      print('Error fetching badge image: $e');
+      _logger.e('Error fetching badge image',
+          error: e, stackTrace: StackTrace.current);
       return null;
     }
   }
@@ -81,8 +84,9 @@ class BadgeService {
   // Get user badges
   Future<List<Badge>> getUserBadges(String userId) async {
     final userDoc = await _firestore.collection('users').doc(userId).get();
-    final List<String> badgeIds = List<String>.from(userDoc.data()?['badges'] ?? []);
-    
+    final List<String> badgeIds =
+        List<String>.from(userDoc.data()?['badges'] ?? []);
+
     if (badgeIds.isEmpty) return [];
 
     final badgesSnapshot = await _firestore
@@ -90,7 +94,9 @@ class BadgeService {
         .where(FieldPath.documentId, whereIn: badgeIds)
         .get();
 
-    return badgesSnapshot.docs.map((doc) => Badge.fromJson(doc.data())).toList();
+    return badgesSnapshot.docs
+        .map((doc) => Badge.fromJson(doc.data()))
+        .toList();
   }
 
   // Award badge to user
@@ -107,8 +113,8 @@ class BadgeService {
     final newBadges = <Badge>[];
 
     for (final badge in badges) {
-      if (badge.requiredHelps > 0 && 
-          helpCount >= badge.requiredHelps && 
+      if (badge.requiredHelps > 0 &&
+          helpCount >= badge.requiredHelps &&
           !userBadges.any((b) => b.id == badge.id)) {
         await awardBadge(userId, badge.id);
         newBadges.add(badge);

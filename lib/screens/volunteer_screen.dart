@@ -34,8 +34,6 @@ class VolunteerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final requests = context.watch<HelpRequestProvider>().requests;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help Requests'),
@@ -65,8 +63,15 @@ class VolunteerScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: requests.isEmpty
-          ? Column(
+      body: Consumer<HelpRequestProvider>(
+        builder: (context, provider, child) {
+          final availableRequests = provider.requests.where((r) => !r.isAccepted).toList();
+          final myAcceptedRequests = provider.acceptedRequests
+              .where((r) => r.volunteerId == FirebaseAuth.instance.currentUser?.uid)
+              .toList();
+
+          if (availableRequests.isEmpty && myAcceptedRequests.isEmpty) {
+            return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/images/no-request.png'),
@@ -78,39 +83,115 @@ class VolunteerScreen extends StatelessWidget {
                   ),
                 ),
               ],
-            )
-          : ListView.builder(
-              itemCount: requests.length,
-              itemBuilder: (context, index) {
-                final request = requests[index];
-                return ListTile(
-                  title: Text('Request from ${request.requesterName}'),
-                  subtitle: Text('Request ID: ${request.id}'),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      // Accept the request and remove it from the list
-                      context.read<HelpRequestProvider>().acceptRequest(
-                          request.id, FirebaseAuth.instance.currentUser!.uid);
-                      context
-                          .read<HelpRequestProvider>()
-                          .removeRequest(request.id);
+            );
+          }
 
-                      // Navigate to the video call screen
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VideoCallScreen(
-                            role: 'volunteer',
-                            volunteerId: FirebaseAuth.instance.currentUser?.uid,
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              if (myAcceptedRequests.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Your Active Sessions',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+                ...myAcceptedRequests.map((request) => Card(
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      child: ListTile(
+                        title: Text(
+                          'Active Session with ${request.requesterName}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
                           ),
                         ),
-                      );
-                    },
-                    child: const Text('Help'),
+                        subtitle: Text(
+                            'Started at: ${request.timestamp.toString().split('.')[0]}'),
+                        trailing: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => VideoCallScreen(
+                                  role: 'volunteer',
+                                  volunteerId: FirebaseAuth.instance.currentUser?.uid,
+                                  requestId: request.id,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Join Call'),
+                        ),
+                      ),
+                    )),
+                const Divider(height: 32.0),
+              ],
+              if (availableRequests.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Available Requests',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
                   ),
-                );
-              },
-            ),
+                ),
+                ...availableRequests.map((request) => Card(
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      child: ListTile(
+                        title: Text(
+                          'Request from ${request.requesterName}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Time: ${request.timestamp.toString().split('.')[0]}'),
+                            Text('Description: ${request.description}'),
+                          ],
+                        ),
+                        trailing: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                          ),
+                          onPressed: () async {
+                            // Accept the request
+                            await provider.acceptRequest(
+                                request.id, FirebaseAuth.instance.currentUser!.uid);
+
+                            if (!context.mounted) return;
+                            // Navigate to the video call screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => VideoCallScreen(
+                                  role: 'volunteer',
+                                  volunteerId: FirebaseAuth.instance.currentUser?.uid,
+                                  requestId: request.id,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Help'),
+                        ),
+                      ),
+                    )),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }
