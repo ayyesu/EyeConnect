@@ -106,7 +106,8 @@ class VideoCallService {
   }
 
   void _updateConnectionStatus(RTCPeerConnectionState state) {
-    final newStatus = state == RTCPeerConnectionState.RTCPeerConnectionStateConnected;
+    final newStatus =
+        state == RTCPeerConnectionState.RTCPeerConnectionStateConnected;
     if (_isConnected != newStatus) {
       _isConnected = newStatus;
       onConnectionStatusChanged?.call(_isConnected);
@@ -146,7 +147,7 @@ class VideoCallService {
   Future<void> createRoom(String roomId) async {
     try {
       _currentRoomId = roomId;
-      
+
       // Create room document
       await _firestore.collection('rooms').doc(roomId).set({
         'createdAt': FieldValue.serverTimestamp(),
@@ -185,10 +186,10 @@ class VideoCallService {
       final answer = await _peerConnection!.createAnswer();
       await _peerConnection!.setLocalDescription(answer);
 
-      await _firestore.collection('rooms').doc(roomId).update({
-        'answer': answer.toMap(),
-        'status': 'connected'
-      });
+      await _firestore
+          .collection('rooms')
+          .doc(roomId)
+          .update({'answer': answer.toMap(), 'status': 'connected'});
 
       _listenForIceCandidates();
     } catch (e) {
@@ -225,11 +226,10 @@ class VideoCallService {
       await _peerConnection!.setLocalDescription(offer);
 
       // Save offer to Firestore
-      await _firestore.collection('rooms').doc(_currentRoomId).update({
-        'offer': offer.toMap(),
-        'status': 'offer_created'
-      });
-
+      await _firestore
+          .collection('rooms')
+          .doc(_currentRoomId)
+          .update({'offer': offer.toMap(), 'status': 'offer_created'});
     } catch (e) {
       _logger.e('Error starting call: $e');
       rethrow;
@@ -261,11 +261,13 @@ class VideoCallService {
   void _handleConnectionFailure() {
     if (_reconnectionAttempts < _maxReconnectionAttempts && !_isDisposing) {
       _reconnectionAttempts++;
-      _logger.w('Connection failed. Attempt $_reconnectionAttempts of $_maxReconnectionAttempts');
+      _logger.w(
+          'Connection failed. Attempt $_reconnectionAttempts of $_maxReconnectionAttempts');
 
       _reconnectionTimer?.cancel();
-      final delay = Duration(seconds: math.pow(2, _reconnectionAttempts).toInt());
-      
+      final delay =
+          Duration(seconds: math.pow(2, _reconnectionAttempts).toInt());
+
       _reconnectionTimer = Timer(delay, () async {
         try {
           await _cleanupPeerConnection();
@@ -331,10 +333,8 @@ class VideoCallService {
 
       // Update room status if exists
       if (_currentRoomId != null) {
-        await _firestore.collection('rooms').doc(_currentRoomId).update({
-          'status': 'ended',
-          'endedAt': FieldValue.serverTimestamp()
-        });
+        await _firestore.collection('rooms').doc(_currentRoomId).update(
+            {'status': 'ended', 'endedAt': FieldValue.serverTimestamp()});
       }
 
       // Clean up resources
