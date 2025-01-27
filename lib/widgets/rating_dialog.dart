@@ -32,39 +32,62 @@ class _RatingDialogState extends State<RatingDialog> {
           ),
           const SizedBox(height: 20),
           Semantics(
-            label: 'Rating: ${_rating.toInt()} out of 5 stars',
-            value: '${_rating.toInt()} stars',
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return IconButton(
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 32,
-                    semanticLabel: 'Rate ${index + 1} stars',
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _rating = index + 1.0;
-                    });
-                  },
-                  tooltip: '${index + 1} stars',
-                );
-              }),
+            label: 'Rating selector',
+            hint: 'Double tap on a star to set your rating. Current rating is ${_rating.toInt()} out of 5 stars',
+            child: MergeSemantics(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return ExcludeSemantics(
+                    child: IconButton(
+                      icon: Icon(
+                        index < _rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _rating = index + 1.0;
+                        });
+                        // Announce the new rating for screen readers
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Rating set to ${index + 1} stars',
+                              semanticsLabel: 'You have selected ${index + 1} stars',
+                            ),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      tooltip: 'Rate ${index + 1} stars',
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            'Current rating: ${_rating.toInt()} stars',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Semantics(
+            label: 'Current rating display',
+            value: '${_rating.toInt()} stars',
+            child: Text(
+              'Current rating: ${_rating.toInt()} stars',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(_rating),
-          child: const Text('Submit Rating'),
+        Semantics(
+          button: true,
+          label: 'Submit rating button',
+          hint: 'Double tap to submit your rating of ${_rating.toInt()} stars',
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(_rating),
+            child: const Text('Submit Rating'),
+          ),
         ),
       ],
     );

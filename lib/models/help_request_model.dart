@@ -4,9 +4,10 @@ class HelpRequest {
   final String requesterId;
   final String description;
   final DateTime timestamp;
-  bool isAccepted;
-  String? volunteerId;
-  bool roomCreated;
+  final bool isAccepted;
+  final String? volunteerId;
+  final bool roomCreated;
+  final String status;
 
   HelpRequest({
     required this.id,
@@ -17,6 +18,7 @@ class HelpRequest {
     this.isAccepted = false,
     this.volunteerId,
     this.roomCreated = false,
+    this.status = 'pending',
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +30,7 @@ class HelpRequest {
     'isAccepted': isAccepted,
     'volunteerId': volunteerId,
     'roomCreated': roomCreated,
+    'status': status,
   };
 
   factory HelpRequest.fromJson(Map<String, dynamic> json) => HelpRequest(
@@ -39,5 +42,6 @@ class HelpRequest {
     isAccepted: json['isAccepted'] ?? false,
     volunteerId: json['volunteerId'],
     roomCreated: json['roomCreated'] ?? false,
+    status: json['status'] ?? 'pending',
   );
 }

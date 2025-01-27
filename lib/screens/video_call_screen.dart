@@ -73,48 +73,27 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _initializeVideoCall() async {
     try {
+      // Set the role for the video call service
+      _videoCallService.setRole(widget.role);
+
+      // Initialize WebRTC
       await _videoCallService.initializeWebRTC();
+
+      // Get user media and set local stream
       _localStream = await _videoCallService.getUserMedia();
       _localRenderer.srcObject = _localStream;
       setState(() {});
 
-      await _startCall();
+      // Set up callbacks
       _setupCallbacks();
+
+      // Handle role-specific setup
       await _handleRoleSpecificSetup();
+
+      // Start connection timeout
       _startConnectionTimeout();
     } catch (e) {
       _handleError('Failed to initialize video call: $e');
-    }
-  }
-
-  void _handleError(String message) {
-    if (!mounted) return;
-
-    _scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 5),
-      ),
-    );
-
-    // If it's a critical error, end the call
-    if (message.contains('permissions') || message.contains('initialize')) {
-      _endCall();
-    }
-  }
-
-  Future<void> _startCall() async {
-    try {
-      if (widget.role == 'requester') {
-        await _videoCallService.createRoom(widget.requestId);
-        await _videoCallService.startCall(_localStream!);
-      } else {
-        await _videoCallService.joinRoom(widget.requestId);
-      }
-      setState(() => _isCallStarted = true);
-    } catch (e) {
-      _handleError('Failed to start call: $e');
     }
   }
 
@@ -127,24 +106,32 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         _logger.i('ICE connection state changed: $state');
       }
       ..onRemoteStream = (stream) {
+        if (!mounted) return;
         setState(() {
           _remoteStream = stream;
           _remoteRenderer.srcObject = stream;
+          _isConnected = true;
         });
       }
       ..onConnectionStatusChanged = (isConnected) {
+        if (!mounted) return;
         setState(() => _isConnected = isConnected);
       };
   }
 
   Future<void> _handleRoleSpecificSetup() async {
-    _videoCallService.setRole(widget.role);
-    if (widget.role == 'volunteer') {
-      await _helpRequestProvider?.updateHelpRequestStatus(
-        widget.requestId,
-        'in_progress',
-        volunteerId: widget.volunteerId,
-      );
+    try {
+      if (widget.role == 'requester') {
+        // Create room and start call
+        await _videoCallService.createRoom(widget.requestId);
+        await _videoCallService.startCall(_localStream!);
+      } else {
+        // Join existing room
+        await _videoCallService.joinRoom(widget.requestId);
+      }
+      setState(() => _isCallStarted = true);
+    } catch (e) {
+      _handleError('Failed to setup call: $e');
     }
   }
 
@@ -161,48 +148,52 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (_isDisposing) return;
 
     try {
+      // Calculate call duration
+      final endTime = DateTime.now();
+      final callDuration = endTime.difference(_startTime!);
+
+      // End the call in video service
       await _videoCallService.endCall();
 
-      if (widget.role == 'requester') {
-        final duration = DateTime.now().difference(_startTime!);
-        await _leaderboardProvider?.updateVolunteerStats(
-          widget.volunteerId!,
-          callDuration: duration,
-          rating: 0.0,
+      // Show rating dialog for visually impaired users
+      if (widget.role == 'requester' && widget.volunteerId != null) {
+        if (!mounted) return;
+        final rating = await showDialog<double>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => RatingDialog(
+            requestId: widget.requestId,
+            volunteerId: widget.volunteerId!,
+            callDuration: callDuration.inSeconds,
+          ),
         );
 
-        // Show rating dialog for the visually impaired user to rate the volunteer
-        if (mounted) {
-          final rating = await showDialog<double>(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => RatingDialog(
-                  requestId: widget.requestId,
-                  volunteerId: widget.volunteerId!,
-                  callDuration: duration.inMinutes,
-                ),
-              ) ??
-              5.0;
-
-          // Update stats with the actual rating
+        if (rating != null && mounted) {
+          // Update volunteer stats
           await _leaderboardProvider?.updateVolunteerStats(
             widget.volunteerId!,
+            callDuration: callDuration.inMinutes,
             rating: rating,
-            callDuration: duration,
           );
         }
       }
 
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // Delete help request
+      await _helpRequestProvider?.deleteHelpRequest(widget.requestId);
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
     } catch (e) {
-      _logger.e('Error ending call: $e');
-      // Still try to close the screen
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      _handleError('Error ending call: $e');
     }
+  }
+
+  void _handleError(String message) {
+    if (!mounted) return;
+    _logger.e(message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override

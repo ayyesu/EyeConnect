@@ -45,6 +45,7 @@ class HelpRequestProvider extends ChangeNotifier {
             isAccepted: data['isAccepted'] ?? false,
             volunteerId: data['volunteerId'],
             roomCreated: data['roomCreated'] ?? false,
+            status: data['status'] ?? '',
           );
         }).toList();
 
@@ -84,6 +85,7 @@ class HelpRequestProvider extends ChangeNotifier {
             isAccepted: data['isAccepted'] ?? false,
             volunteerId: data['volunteerId'],
             roomCreated: data['roomCreated'] ?? false,
+            status: data['status'] ?? '',
           );
         }).toList();
 
@@ -119,6 +121,7 @@ class HelpRequestProvider extends ChangeNotifier {
         'isAccepted': false,
         'volunteerId': null,
         'roomCreated': false,
+        'status': 'pending',
       });
 
       _logger.i('Help request created successfully with ID: ${request.id}');
@@ -138,9 +141,22 @@ class HelpRequestProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
+      // First check if the request is still available
+      final requestDoc = await _firestore.collection('help_requests').doc(id).get();
+      if (!requestDoc.exists) {
+        throw Exception('Help request no longer exists');
+      }
+
+      final requestData = requestDoc.data()!;
+      if (requestData['isAccepted'] == true) {
+        throw Exception('Help request has already been accepted by another volunteer');
+      }
+
+      // Update the request status
       await _firestore.collection('help_requests').doc(id).update({
         'isAccepted': true,
         'volunteerId': volunteerId,
+        'status': 'accepted',
       });
 
       _logger.i('Help request accepted successfully');
@@ -186,9 +202,12 @@ class HelpRequestProvider extends ChangeNotifier {
     try {
       await _firestore.collection('help_requests').doc(requestId).update({
         'roomCreated': roomCreated,
+        'status': roomCreated ? 'in_progress' : 'ended',
       });
+      _logger.i('Room status updated successfully');
     } catch (e) {
       _logger.e('Error updating room status: $e');
+      _error = 'Failed to update room status: ${e.toString()}';
       rethrow;
     }
   }
