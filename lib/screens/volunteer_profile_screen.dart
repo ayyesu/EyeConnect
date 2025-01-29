@@ -17,25 +17,49 @@ class VolunteerProfileScreen extends StatelessWidget {
         title: const Text('Volunteer Profile'),
         elevation: 0,
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('volunteer_stats')
-            .doc(FirebaseAuth.instance.currentUser?.uid)
-            .snapshots(),
+      body: FutureBuilder<VolunteerStats>(
+        // For presentation, return mock data immediately
+        future: Future.value(VolunteerStats(
+          volunteerId: '1',
+          totalHelps: 150,
+          totalMinutesHelped: 450,
+          averageRating: 4.9,
+          earnedBadges: [
+            badge_model.Badge(
+              id: 'helper_badge',
+              name: 'Super Helper',
+              description: 'Helped 100+ people',
+              imageUrl: 'assets/badges/super_helper.svg',
+              requiredHelps: 100,
+            ),
+            badge_model.Badge(
+              id: 'time_badge',
+              name: 'Time Champion',
+              description: 'Spent 400+ minutes helping',
+              imageUrl: 'assets/badges/time_champion.svg',
+              requiredHelps: 400,
+            ),
+            badge_model.Badge(
+              id: 'rating_badge',
+              name: 'Top Rated',
+              description: 'Maintained 4.8+ rating',
+              imageUrl: 'assets/badges/top_rated.svg',
+              requiredHelps: 0,
+            ),
+          ],
+          currentLevel: 5,
+          experiencePoints: 2500,
+        )),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
+          if (!snapshot.hasData) {
             return const Center(child: Text('No stats available'));
           }
 
-          final statsData = snapshot.data!.data() as Map<String, dynamic>;
-          final stats = VolunteerStats.fromJson({
-            ...statsData,
-            'volunteerId': FirebaseAuth.instance.currentUser?.uid ?? '',
-          });
+          final stats = snapshot.data!;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),

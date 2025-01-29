@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/leaderboard_entry_model.dart';
 import 'package:logger/logger.dart';
 
-class LeaderboardProvider extends ChangeNotifier {
+class LeaderboardProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<LeaderboardEntry> _entries = [];
   bool _isLoading = false;
@@ -15,23 +15,38 @@ class LeaderboardProvider extends ChangeNotifier {
   String get error => _error;
 
   Future<void> fetchLeaderboard() async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      _error = '';
-      notifyListeners();
-
-      final snapshot = await _firestore
-          .collection('leaderboard')
-          .orderBy('helpCount', descending: true)
-          .orderBy('averageRating', descending: true)
-          .limit(10) // Only get top 10
-          .get();
-
-      _entries = snapshot.docs
-          .map((doc) => LeaderboardEntry.fromJson(doc.data()))
-          .toList();
+      // For presentation purposes, using sample data
+      _entries = [
+        LeaderboardEntry(
+          userId: '1',
+          userName: 'Daniel Kissiedu',
+          helpCount: 150,
+          totalHelpTime: Duration(minutes: 450),
+          averageRating: 4.9,
+        ),
+        LeaderboardEntry(
+          userId: '2',
+          userName: 'Emma Wilson',
+          helpCount: 120,
+          totalHelpTime: Duration(minutes: 360),
+          averageRating: 4.8,
+        ),
+        LeaderboardEntry(
+          userId: '4',
+          userName: 'Abdul Ganiu',
+          helpCount: 75,
+          totalHelpTime: Duration(minutes: 225),
+          averageRating: 4.6,
+        ),
+      ];
     } catch (e) {
-      _logger.e('Failed to fetch leaderboard: $e');
+      _logger.e('Failed to load leaderboard data: $e');
+      _error = 'Failed to load leaderboard data';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -75,8 +90,8 @@ class LeaderboardProvider extends ChangeNotifier {
         await _firestore.collection('volunteer_stats').doc(userId).set({
           'volunteerId': userId,
           'userName': userData['username'],
-          'totalHelps': newCount,
-          'totalMinutesHelped': newTotalTime,
+          'helpCount': newCount,
+          'totalHelpTime': newTotalTime,
           'averageRating': newAverageRating,
           'earnedBadges': currentData['earnedBadges'] ?? [],
           'currentLevel': currentData['currentLevel'] ?? 1,
@@ -99,8 +114,8 @@ class LeaderboardProvider extends ChangeNotifier {
         await _firestore.collection('volunteer_stats').doc(userId).set({
           'volunteerId': userId,
           'userName': userData['username'],
-          'totalHelps': 1,
-          'totalMinutesHelped': callDuration,
+          'helpCount': 1,
+          'totalHelpTime': callDuration,
           'averageRating': rating,
           'earnedBadges': [],
           'currentLevel': 1,
