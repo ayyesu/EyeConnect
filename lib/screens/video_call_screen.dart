@@ -156,20 +156,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await _videoCallService.endCall();
 
       // Show rating dialog for visually impaired users
-      if (widget.role == 'requester' && widget.volunteerId != null) {
+      if (widget.role == 'requester') {
         if (!mounted) return;
         final rating = await showDialog<double>(
           context: context,
           barrierDismissible: false,
           builder: (context) => RatingDialog(
             requestId: widget.requestId,
-            volunteerId: widget.volunteerId!,
+            volunteerId: widget.volunteerId ??
+                'test_volunteer', // Use a test volunteer ID if none provided
             callDuration: callDuration.inSeconds,
           ),
         );
 
-        if (rating != null && mounted) {
-          // Update volunteer stats
+        if (rating != null && mounted && widget.volunteerId != null) {
+          // Only update stats if there was an actual volunteer
           await _leaderboardProvider?.updateVolunteerStats(
             widget.volunteerId!,
             callDuration: callDuration.inMinutes,
@@ -229,10 +230,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              // Main remote video
-              if (_isCallStarted) SizedBox.expand(child: _renderRemoteVideo()),
+              // Main remote video (only show when we have a remote stream)
+              if (_isCallStarted && _remoteStream != null)
+                SizedBox.expand(child: _renderRemoteVideo()),
 
-              // Local video preview
+              // Local video preview (always show once call is started)
               if (_isCallStarted)
                 Positioned(
                   top: 20,
@@ -240,14 +242,24 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   child: _LocalPreview(renderer: _renderLocalVideo()),
                 ),
 
-              // Connection status overlay
-              if (!_isConnected && _isCallStarted) const _ConnectionOverlay(),
+              Stack(
+                children: [
+                  // Connection status overlay
+                  if (_isCallStarted)
+                    if (!_isConnected)
+                      const _ConnectionOverlay(message: 'Connecting...')
+                    else if (_remoteStream == null)
+                      const _ConnectionOverlay(
+                        message: 'Waiting for other participant to join...',
+                      ),
 
-              // Top app bar
-              const _CallAppBar(),
+                  // Top app bar
+                  const _CallAppBar(),
 
-              // Bottom controls
-              if (_isCallStarted) const _CallControls(),
+                  // Bottom controls
+                  if (_isCallStarted) const _CallControls(),
+                ],
+              ),
 
               // Initial loading indicator
               if (!_isCallStarted) const Center(child: _LoadingIndicator()),
@@ -292,21 +304,23 @@ class _LocalPreview extends StatelessWidget {
 }
 
 class _ConnectionOverlay extends StatelessWidget {
-  const _ConnectionOverlay();
+  final String message;
+  const _ConnectionOverlay({required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.black54,
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 16),
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 16),
             Text(
-              'Connecting...',
-              style: TextStyle(color: Colors.white, fontSize: 18),
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 18),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
