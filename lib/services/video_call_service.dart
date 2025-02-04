@@ -51,7 +51,9 @@ class VideoCallService {
 
   final _configuration = {
     'iceServers': _iceServers,
-    'sdpSemantics': 'unified-plan'
+    'sdpSemantics': 'unified-plan',
+    'offerToReceiveVideo': true,
+    'offerToReceiveAudio': true,
   };
 
   void setRole(String role) {
@@ -64,8 +66,20 @@ class VideoCallService {
       _logger.i('Initializing WebRTC connection...');
 
       _peerConnection = await createPeerConnection(_configuration);
+
+      // Add transceivers for audio and video
+      await _peerConnection?.addTransceiver(
+        kind: RTCRtpMediaType.RTCRtpMediaTypeAudio,
+        init: RTCRtpTransceiverInit(direction: TransceiverDirection.SendRecv),
+      );
+      await _peerConnection?.addTransceiver(
+        kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
+        init: RTCRtpTransceiverInit(direction: TransceiverDirection.SendRecv),
+      );
+
       _setupPeerConnectionListeners();
       _isInitialized = true;
+      _logger.i('WebRTC initialized successfully');
     } catch (e) {
       _logger.e('WebRTC initialization failed: $e');
       await _cleanupPeerConnection();
@@ -124,20 +138,23 @@ class VideoCallService {
 
   Future<MediaStream> getUserMedia() async {
     try {
-      _localStream = await navigator.mediaDevices.getUserMedia({
+      final Map<String, dynamic> mediaConstraints = {
         'audio': true,
         'video': {
           'mandatory': {
             'minWidth': '640',
             'minHeight': '480',
-            'minFrameRate': '24',
+            'minFrameRate': '30',
           },
           'facingMode': 'user',
-          'optional': []
+          'optional': [],
         }
-      });
+      };
 
-      return _localStream!;
+      MediaStream stream =
+          await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      _localStream = stream;
+      return stream;
     } catch (e) {
       _logger.e('Error getting user media: $e');
       rethrow;
@@ -148,11 +165,19 @@ class VideoCallService {
     try {
       _currentRoomId = roomId;
 
-      // Create room document
+      // Create an offer
+      final offer = await _peerConnection!.createOffer();
+      await _peerConnection!.setLocalDescription(offer);
+
+      // Create room document with the offer
       await _firestore.collection('rooms').doc(roomId).set({
         'createdAt': FieldValue.serverTimestamp(),
         'createdBy': _role,
-        'status': 'waiting'
+        'status': 'waiting',
+        'offer': {
+          'type': offer.type,
+          'sdp': offer.sdp,
+        },
       });
 
       // Listen for answer and candidates
@@ -161,6 +186,9 @@ class VideoCallService {
           .doc(roomId)
           .snapshots()
           .listen(_handleRoomUpdates);
+
+      // Set up ICE candidate collection
+      _listenForIceCandidates();
 
       onRoomReady?.call(true);
     } catch (e) {
@@ -172,11 +200,36 @@ class VideoCallService {
   Future<void> joinRoom(String roomId) async {
     try {
       _currentRoomId = roomId;
-      final roomDoc = await _firestore.collection('rooms').doc(roomId).get();
 
-      if (!roomDoc.exists) throw Exception('Room not found');
+      // Try to get the room with retries
+      DocumentSnapshot? roomDoc;
+      int retryCount = 0;
+      const maxRetries = 3;
 
-      final offer = roomDoc.data()?['offer'];
+      while (retryCount < maxRetries) {
+        roomDoc = await _firestore.collection('rooms').doc(roomId).get();
+
+        if (roomDoc.exists) {
+          final data = roomDoc.data() as Map<String, dynamic>?;
+          if (data != null && data['offer'] != null) {
+            break; // Room exists with offer, proceed with joining
+          }
+        }
+
+        // Wait before retrying
+        await Future.delayed(Duration(seconds: 1));
+        retryCount++;
+
+        if (retryCount == maxRetries) {
+          throw Exception(
+              'Room not found or not ready after multiple attempts');
+        }
+      }
+
+      if (!roomDoc!.exists) throw Exception('Room not found');
+
+      final data = roomDoc.data() as Map<String, dynamic>;
+      final offer = data['offer'];
       if (offer == null) throw Exception('No offer found in room');
 
       await _peerConnection?.setRemoteDescription(
@@ -192,6 +245,13 @@ class VideoCallService {
           .update({'answer': answer.toMap(), 'status': 'connected'});
 
       _listenForIceCandidates();
+
+      // Set up room updates listener
+      _roomSubscription = _firestore
+          .collection('rooms')
+          .doc(roomId)
+          .snapshots()
+          .listen(_handleRoomUpdates);
     } catch (e) {
       _logger.e('Error joining room: $e');
       rethrow;
@@ -199,44 +259,63 @@ class VideoCallService {
   }
 
   void _handleRoomUpdates(DocumentSnapshot snapshot) async {
-    if (!snapshot.exists) return;
-    final data = snapshot.data() as Map<String, dynamic>;
-
-    if (data['answer'] != null && !_isConnected) {
-      await _peerConnection?.setRemoteDescription(
-        RTCSessionDescription(
-          data['answer']['sdp'],
-          data['answer']['type'],
-        ),
-      );
+    if (!snapshot.exists) {
+      _logger.w('Room no longer exists');
+      return;
     }
-  }
 
-  Future<void> startCall(MediaStream localStream) async {
-    if (!_isInitialized) throw Exception('WebRTC not initialized');
+    final data = snapshot.data() as Map<String, dynamic>?;
+    if (data == null) return;
 
     try {
-      // Add tracks to peer connection
-      localStream.getTracks().forEach((track) {
-        _peerConnection?.addTrack(track, localStream);
-      });
+      // Handle answer if we're the caller
+      if (_role == 'requester' && data['answer'] != null && !_isConnected) {
+        final answer = data['answer'];
+        if (answer != null && _peerConnection != null) {
+          await _peerConnection!.setRemoteDescription(
+            RTCSessionDescription(answer['sdp'], answer['type']),
+          );
+          _logger.i('Set remote description from answer');
+        }
+      }
 
-      // Create and set offer
-      final offer = await _peerConnection!.createOffer();
-      await _peerConnection!.setLocalDescription(offer);
+      // Handle offer if we're the callee
+      if (_role == 'volunteer' && data['offer'] != null && !_isConnected) {
+        final offer = data['offer'];
+        if (offer != null && _peerConnection != null) {
+          await _peerConnection!.setRemoteDescription(
+            RTCSessionDescription(offer['sdp'], offer['type']),
+          );
+          _logger.i('Set remote description from offer');
 
-      // Save offer to Firestore
-      await _firestore
-          .collection('rooms')
-          .doc(_currentRoomId)
-          .update({'offer': offer.toMap(), 'status': 'offer_created'});
+          // Create and set answer
+          final answer = await _peerConnection!.createAnswer();
+          await _peerConnection!.setLocalDescription(answer);
+
+          // Send answer back
+          await _firestore
+              .collection('rooms')
+              .doc(_currentRoomId)
+              .update({'answer': answer.toMap(), 'status': 'connected'});
+        }
+      }
+
+      // Handle room status changes
+      if (data['status'] == 'connected' && !_isConnected) {
+        _isConnected = true;
+        onConnectionStatusChanged?.call(true);
+        _logger.i('Connection established successfully');
+      } else if (data['status'] == 'ended') {
+        await endCall();
+      }
     } catch (e) {
-      _logger.e('Error starting call: $e');
-      rethrow;
+      _logger.e('Error handling room updates: $e');
+      _handleConnectionFailure();
     }
   }
 
   void _listenForIceCandidates() {
+    _candidatesSubscription?.cancel();
     _candidatesSubscription = _firestore
         .collection('rooms')
         .doc(_currentRoomId)
@@ -244,18 +323,53 @@ class VideoCallService {
         .snapshots()
         .listen((snapshot) async {
       for (var change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added &&
-            !_processedCandidateIds.contains(change.doc.id)) {
-          final candidate = RTCIceCandidate(
-            change.doc.data()!['candidate'],
-            change.doc.data()!['sdpMid'],
-            change.doc.data()!['sdpMLineIndex'],
-          );
-          await _peerConnection?.addCandidate(candidate);
-          _processedCandidateIds.add(change.doc.id);
+        if (change.type == DocumentChangeType.added) {
+          final candidateData = change.doc.data() as Map<String, dynamic>;
+          if (!_processedCandidateIds.contains(change.doc.id)) {
+            _processedCandidateIds.add(change.doc.id);
+            try {
+              await _peerConnection?.addCandidate(
+                RTCIceCandidate(
+                  candidateData['candidate'],
+                  candidateData['sdpMid'],
+                  candidateData['sdpMLineIndex'],
+                ),
+              );
+              _logger.i('Added ICE candidate');
+            } catch (e) {
+              _logger.e('Error adding ICE candidate: $e');
+            }
+          }
         }
       }
     });
+  }
+
+  Future<void> startCall(MediaStream localStream) async {
+    try {
+      _logger.i('Starting call with local stream...');
+
+      // Add local tracks to peer connection
+      localStream.getTracks().forEach((track) async {
+        await _peerConnection?.addTrack(track, localStream);
+      });
+
+      // If we're the requester, create and set the offer
+      if (_role == 'requester') {
+        final offer = await _peerConnection!.createOffer();
+        await _peerConnection!.setLocalDescription(offer);
+
+        // Update the room with the offer
+        await _firestore.collection('rooms').doc(_currentRoomId).update({
+          'offer': offer.toMap(),
+        });
+      }
+
+      _logger.i('Call started successfully');
+    } catch (e) {
+      _logger.e('Error starting call: $e');
+      rethrow;
+    }
   }
 
   void _handleConnectionFailure() {

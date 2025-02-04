@@ -44,15 +44,22 @@ class VisuallyImpairedScreen extends StatelessWidget {
   }
 
   Future<bool> _checkAndRequestPermissions() async {
+    final cameraStatus = await Permission.camera.status;
+    final microphoneStatus = await Permission.microphone.status;
+
+    // If permissions are already granted, return true
+    if (cameraStatus.isGranted && microphoneStatus.isGranted) {
+      return true;
+    }
+
+    // Request permissions only if they're not already granted
     final permissions = [
       Permission.camera,
       Permission.microphone,
     ];
 
-    // Request all required permissions
+    // Request permissions that aren't granted yet
     final statuses = await permissions.request();
-
-    // Check if all permissions are granted
     return statuses.values.every((status) => status.isGranted);
   }
 

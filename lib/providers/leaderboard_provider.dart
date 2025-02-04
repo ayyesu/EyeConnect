@@ -25,14 +25,14 @@ class LeaderboardProvider with ChangeNotifier {
         LeaderboardEntry(
           userId: '1',
           userName: 'Daniel Kissiedu',
-          helpCount: 150,
+          helpCount: 120,
           totalHelpTime: Duration(minutes: 450),
           averageRating: 4.9,
         ),
         LeaderboardEntry(
           userId: '2',
           userName: 'Emma Wilson',
-          helpCount: 120,
+          helpCount: 90,
           totalHelpTime: Duration(minutes: 360),
           averageRating: 4.8,
         ),
