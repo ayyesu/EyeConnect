@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Badge {
   final String id;
   final String name;
@@ -23,9 +25,29 @@ class Badge {
     );
   }
 
+  factory Badge.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Badge(
+      id: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+      requiredHelps: data['requiredHelps'] ?? 0,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'name': name,
+      'description': description,
+      'imageUrl': imageUrl,
+      'requiredHelps': requiredHelps,
+    };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
       'name': name,
       'description': description,
       'imageUrl': imageUrl,

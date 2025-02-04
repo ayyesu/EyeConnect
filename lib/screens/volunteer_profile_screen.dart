@@ -70,7 +70,7 @@ class VolunteerProfileScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 _buildLevelProgress(stats),
                 const SizedBox(height: 20),
-                _buildBadgesSection(stats),
+                _buildBadgesSection(context, stats),
               ],
             ),
           );
@@ -190,7 +190,7 @@ class VolunteerProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBadgesSection(VolunteerStats stats) {
+  Widget _buildBadgesSection(BuildContext context, VolunteerStats stats) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -200,41 +200,45 @@ class VolunteerProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Earned Badges',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            const Row(
+              children: [
+                Icon(Icons.military_tech, color: Colors.amber),
+                SizedBox(width: 8),
+                Text(
+                  'Your Badges',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             if (stats.earnedBadges.isEmpty)
               const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Text(
-                    'No badges earned yet. Keep helping to earn badges!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
+                child: Text(
+                  'Start helping to earn badges!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               )
             else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.8,
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
                 ),
-                itemCount: stats.earnedBadges.length,
-                itemBuilder: (context, index) {
-                  final badge = stats.earnedBadges[index];
-                  return _buildBadgeItem(badge);
-                },
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.85,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: stats.earnedBadges.length,
+                  itemBuilder: (context, index) {
+                    return _buildBadgeCard(context, stats.earnedBadges[index]);
+                  },
+                ),
               ),
           ],
         ),
@@ -242,49 +246,100 @@ class VolunteerProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBadgeItem(badge_model.Badge badge) {
-    return FutureBuilder<List<int>?>(
-      future: BadgeService().getBadgeImageData(badge.imageUrl),
-      builder: (context, snapshot) {
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Tooltip(
-            message: badge.description,
-            child: Padding(
+  Widget _buildBadgeCard(BuildContext context, badge_model.Badge badge) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade100,
+                    Colors.blue.shade50,
+                  ],
+                ),
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: snapshot.hasData
-                        ? SvgPicture.memory(
-                            Uint8List.fromList(snapshot.data!),
-                            fit: BoxFit.contain,
-                          )
-                        : const Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                    flex: 3,
+                    child: Center(
+                      child: Image.asset(
+                        _getBadgeImageUrl(badge.id),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.emoji_events,
+                            size: 48,
+                            color: Colors.amber,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    badge.name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          badge.name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          badge.description,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
+  }
+
+  String _getBadgeImageUrl(String badgeId) {
+    // Using local badge assets
+    final badgeImages = {
+      'helper_badge': 'assets/badges/Champion.png',
+      'time_badge': 'assets/badges/Gold.png',
+      'rating_badge': 'assets/badges/Master.png',
+    };
+
+    return badgeImages[badgeId] ??
+        'assets/badges/Bronze.png'; // Default to Bronze badge
   }
 }
